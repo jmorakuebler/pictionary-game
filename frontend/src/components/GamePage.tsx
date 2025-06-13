@@ -28,6 +28,11 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
   const [lastX, setLastX] = useState(0)
   const [lastY, setLastY] = useState(0)
 
+  // Fetch a new word when the game starts
+  useEffect(() => {
+    handleNewWord()
+  }, []) // Empty dependency array means this runs only on mount
+
   const currentTeam = teams[currentTeamIndex]
   const currentPlayer = currentTeam.players[currentPlayerIndex]
 
@@ -138,8 +143,10 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
     if (!canvas) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
     setLastX(x)
     setLastY(y)
   }
@@ -153,8 +160,10 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
     if (!ctx) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (e.clientX - rect.left) * scaleX
+    const y = (e.clientY - rect.top) * scaleY
 
     ctx.beginPath()
     ctx.moveTo(lastX, lastY)
