@@ -3,6 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import random
 import json
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI(
     title="Pictionary Game API",
@@ -13,7 +18,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite's default port
+    allow_origins=[os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")],  # Default to Vite's default port if not set
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
