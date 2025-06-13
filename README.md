@@ -109,7 +109,6 @@ Before you begin, ensure you have the following installed:
 3. Configure game settings:
    - Time per turn
    - Points to win
-   - Word difficulty
 4. Start the game
 5. Players take turns drawing while their teammates guess
 6. First team to reach the target score wins!
@@ -118,13 +117,11 @@ Before you begin, ensure you have the following installed:
 
 - `GET /`: API information
 - `GET /words`: Get a random word
-- `GET /words?difficulty={level}`: Get a random word of specific difficulty
 
 ## Development
 
 ### Backend Development
 - The backend uses FastAPI for high performance and automatic API documentation
-- API documentation is available at `http://localhost:8000/docs`
 - Words are stored in `backend/app/data/words.json`
 
 ### Frontend Development
