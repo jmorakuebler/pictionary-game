@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -15,4 +15,8 @@ export default {
     },
   },
   plugins: [],
+  // Ensure JIT mode is enabled for better performance
+  mode: 'jit',
+  // Important: This ensures that Tailwind's utilities take precedence
+  important: true,
 } 
