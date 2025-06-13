@@ -3,6 +3,7 @@ import { FaEraser } from 'react-icons/fa'
 import { toast } from 'react-hot-toast'
 import type { Team, GameSettings } from './types'
 import { VictoryModal } from './VictoryModal'
+import { fetchWord } from '../utils/api'
 
 interface GamePageProps {
   teams: Team[]
@@ -112,85 +113,8 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
     }
   }
 
-  const handleGuess = () => {
-    if (guess.toLowerCase() === word.toLowerCase()) {
-      toast.success('Correct guess!')
-      handleCorrectGuess()
-    } else {
-      toast.error('Wrong guess!')
-    }
-    setGuess('')
-  }
-
-  const handleNewWord = () => {
-    const words = [
-      'apple', 'banana', 'cat', 'dog', 'elephant', 'fish', 'giraffe', 'house',
-      'ice cream', 'jacket', 'kangaroo', 'lion', 'monkey', 'notebook', 'orange',
-      'pencil', 'queen', 'rabbit', 'sun', 'tree', 'umbrella', 'violin', 'watermelon',
-      'xylophone', 'yacht', 'zebra'
-    ]
-    setWord(words[Math.floor(Math.random() * words.length)])
-    setShowWord(true)
-    setHasChangedWord(true)
-  }
-
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!hasStartedDrawing) {
-      setHasStartedDrawing(true)
-    }
-    setIsDrawing(true)
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
-    setLastX(x)
-    setLastY(y)
-  }
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    const x = (e.clientX - rect.left) * scaleX
-    const y = (e.clientY - rect.top) * scaleY
-
-    ctx.beginPath()
-    ctx.moveTo(lastX, lastY)
-    ctx.lineTo(x, y)
-    ctx.strokeStyle = 'black'
-    ctx.lineWidth = brushSize
-    ctx.lineCap = 'round'
-    ctx.stroke()
-
-    setLastX(x)
-    setLastY(y)
-  }
-
-  const stopDrawing = () => {
-    setIsDrawing(false)
-  }
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.fillStyle = 'white'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-  }
+  // Remove duplicate declarations - these functions are already defined in the useCanvas hook
+  // and we're using them from the destructured values above
 
   return (
     <div className="max-w-6xl mx-auto p-6">
