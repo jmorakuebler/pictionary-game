@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, type JSX } from 'react'
 import { FaEraser } from 'react-icons/fa'
 import { toast } from 'react-hot-toast'
 import type { Team, GameSettings } from './types'
 import { VictoryModal } from './VictoryModal'
 import { fetchWord } from '../utils/api'
+import { useCanvas } from '../hooks/useCanvas'
 
 interface GamePageProps {
   teams: Team[]
@@ -11,7 +12,8 @@ interface GamePageProps {
   onGameEnd: () => void
 }
 
-export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageProps) {
+
+export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageProps): JSX.Element {
   const [teams, setTeams] = useState<Team[]>(initialTeams)
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0)
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0)
@@ -23,19 +25,29 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
   const [hasStartedDrawing, setHasStartedDrawing] = useState(false)
   const [showVictoryModal, setShowVictoryModal] = useState(false)
   const [winningTeam, setWinningTeam] = useState<Team | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [brushSize, setBrushSize] = useState(5)
-  const [lastX, setLastX] = useState(0)
-  const [lastY, setLastY] = useState(0)
-
-  // Fetch a new word when the game starts
-  useEffect(() => {
-    handleNewWord()
-  }, []) // Empty dependency array means this runs only on mount
+  const { 
+    canvasRef, 
+    startDrawing,
+    draw, 
+    stopDrawing, 
+    isDrawing,
+    clearCanvas, 
+    brushSize, 
+    setBrushSize 
+  } = useCanvas()
 
   const currentTeam = teams[currentTeamIndex]
   const currentPlayer = currentTeam.players[currentPlayerIndex]
+
+  useEffect(() => {
+    handleNewWord()
+  }, [])
+
+  useEffect(() => {
+    if (isDrawing) {
+      setHasStartedDrawing(true)
+    }
+  }, [isDrawing]) // Only re-run when isDrawing changes
 
   useEffect(() => {
     if (hasStartedDrawing && timeLeft > 0) {
@@ -64,11 +76,26 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
     }
   }, [currentTeamIndex, currentPlayerIndex])
 
+  const handleNewWord = async () => {
+    const newWord = await fetchWord()
+    setWord(newWord)
+    setHasChangedWord(false)
+  }
+
+  const handleGuess = () => {
+    if (guess.toLowerCase() === word.toLowerCase()) {
+      toast.success('Correct guess!')
+      handleCorrectGuess()
+    } else {
+      toast.error('Wrong guess!')
+    }
+    setGuess('')
+  }
+
   const handleTurnChange = () => {
     setHasStartedDrawing(false)
     setTimeLeft(settings.turnTime)
     setHasChangedWord(false)
-    setShowWord(false)
     setGuess('')
     setShowVictoryModal(false)
     setWinningTeam(null)
@@ -122,12 +149,14 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
         <h1 className="text-4xl font-bold text-center text-gray-800">
           Pictionary Game
         </h1>
-        <button
-          onClick={onGameEnd}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-        >
-          End Game
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={onGameEnd}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+          >
+            End Game
+          </button>
+        </div>
       </div>
 
       {/* Teams Section */}
@@ -210,7 +239,17 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
               min="1"
               max="20"
               value={brushSize}
-              onChange={(e) => setBrushSize(Number(e.target.value))}
+              onChange={(e) => {
+                const newBrushSize = Number(e.target.value)
+                setBrushSize(newBrushSize)
+                const canvas = canvasRef.current
+                if (canvas) {
+                  const ctx = canvas.getContext('2d')
+                  if (ctx) {
+                    ctx.lineWidth = newBrushSize
+                  }
+                }
+              }}
               className="w-32"
             />
             <button
@@ -229,7 +268,6 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
             value={guess}
             onChange={(e) => setGuess(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleGuess()}
-            placeholder="Enter your guess..."
             disabled={!hasStartedDrawing}
             className={`flex-1 px-4 py-2 bg-white text-gray-800 border-2 border-gray-300 rounded focus:outline-none focus:border-blue-500 placeholder-gray-400 ${
               !hasStartedDrawing ? 'opacity-50 cursor-not-allowed' : ''
@@ -247,13 +285,8 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
             Guess
           </button>
           <button
-            onClick={handleNewWord}
-            disabled={hasChangedWord || !hasStartedDrawing}
-            className={`px-6 py-2 ${
-              hasChangedWord || !hasStartedDrawing
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-yellow-500 hover:bg-yellow-600'
-            } text-white rounded transition-colors`}
+            onClick={handleTurnChange}
+            className={`px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded transition-colors`}
           >
             Skip
           </button>
@@ -268,4 +301,4 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
       )}
     </div>
   )
-} 
+}
