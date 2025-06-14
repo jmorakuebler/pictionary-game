@@ -15,8 +15,7 @@ interface GamePageProps {
 
 export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageProps): JSX.Element {
   const [teams, setTeams] = useState<Team[]>(initialTeams)
-  const [currentTeamIndex, setCurrentTeamIndex] = useState(0)
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0)
+  const [currentPlayerOrder, setCurrentPlayerOrder] = useState(0)
   const [word, setWord] = useState('')
   const [guess, setGuess] = useState('')
   const [showWord, setShowWord] = useState(false)
@@ -36,11 +35,8 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
     setBrushSize 
   } = useCanvas()
 
-  const currentTeam = teams[currentTeamIndex]
-  const currentPlayer = currentTeam.players[currentPlayerIndex]
-
   useEffect(() => {
-    handleNewWord()
+    getNewWord()
   }, [])
 
   useEffect(() => {
@@ -74,12 +70,16 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
         ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
     }
-  }, [currentTeamIndex, currentPlayerIndex])
+  }, [currentPlayerOrder])
 
-  const handleNewWord = async () => {
+  const getNewWord = async () => {
     const newWord = await fetchWord()
     setWord(newWord)
-    setHasChangedWord(false)
+  }
+
+  const handleNewWordClick = async () => {
+    await getNewWord()
+    setHasChangedWord(true)
   }
 
   const handleGuess = () => {
@@ -93,37 +93,27 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
   }
 
   const handleTurnChange = () => {
+    getNewWord()
     setHasStartedDrawing(false)
     setTimeLeft(settings.turnTime)
     setHasChangedWord(false)
     setGuess('')
-    setShowVictoryModal(false)
-    setWinningTeam(null)
+    clearCanvas()
 
-    // Clear canvas
-    if (canvasRef.current) {
-      const canvas = canvasRef.current
-      const ctx = canvas.getContext('2d')
-      if (ctx) {
-        ctx.fillStyle = 'white'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-      }
-    }
-
-    // Move to next player
-    setCurrentPlayerIndex((prev) => {
-      if (prev === currentTeam.players.length - 1) {
-        // Move to next team
-        setCurrentTeamIndex((prevTeam) => (prevTeam === teams.length - 1 ? 0 : prevTeam + 1))
+    // Move to next player v2
+    setCurrentPlayerOrder((prevOrder) => {
+      const last_order = teams[0].players.length + teams[1].players.length
+      if (prevOrder + 1 === last_order) {
         return 0
       }
-      return prev + 1
+      return prevOrder + 1
     })
   }
 
   const handleCorrectGuess = () => {
-    const updatedTeams = teams.map((team, index) => {
-      if (index === currentTeamIndex) {
+    // Even number means team 0, odd number means team 1
+    const updatedTeams = teams.map((team) => {
+      if (team.players.find((player => player.order === currentPlayerOrder))) {
         return { ...team, score: team.score + 1 }
       }
       return team
@@ -131,9 +121,10 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
     setTeams(updatedTeams)
 
     // Check for victory
-    const winningTeam = updatedTeams.find((team) => team.score >= settings.pointsToWin)
-    if (winningTeam) {
-      setWinningTeam(winningTeam)
+    const victoryTeam = updatedTeams.find((team) => team.score >= settings.pointsToWin)
+
+    if (victoryTeam) {
+      setWinningTeam(victoryTeam)
       setShowVictoryModal(true)
     } else {
       handleTurnChange()
@@ -162,24 +153,24 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
       {/* Teams Section */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex gap-8">
-          {teams.map((team, index) => (
-            <div key={index} className="text-center">
+          {teams.map((team) => (
+            <div key={team.id} className="text-center">
               <h3 className={`text-xl font-bold ${team.color}`}>
                 {team.name}
               </h3>
               <p className="text-gray-600">Score: {team.score}</p>
               <div className="mt-2">
-                {team.players.map((player, playerIndex) => (
+                {team.players.map((player) => (
                   <div
-                    key={playerIndex}
+                    key={player.id}
                     className={`text-sm ${
-                      index === currentTeamIndex && playerIndex === currentPlayerIndex
+                      player.order === currentPlayerOrder
                         ? 'font-bold text-gray-800'
                         : 'text-gray-600'
                     }`}
                   >
                     {player.name}
-                    {index === currentTeamIndex && playerIndex === currentPlayerIndex && ' (Drawing)'}
+                    {player.order === currentPlayerOrder && ' (Drawing)'}
                   </div>
                 ))}
               </div>
@@ -207,10 +198,10 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
             Show Word
           </button>
           <button
-            onClick={handleNewWord}
-            disabled={hasChangedWord || !hasStartedDrawing}
+            onClick={handleNewWordClick}
+            disabled={hasChangedWord || hasStartedDrawing}
             className={`px-4 py-2 ${
-              hasChangedWord || !hasStartedDrawing
+              hasChangedWord || hasStartedDrawing
                 ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-yellow-500 hover:bg-yellow-600'
             } text-white rounded transition-colors`}
@@ -267,7 +258,7 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
             type="text"
             value={guess}
             onChange={(e) => setGuess(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleGuess()}
+            onKeyUp={(e) => e.key === 'Enter' && handleGuess()}
             disabled={!hasStartedDrawing}
             className={`flex-1 px-4 py-2 bg-white text-gray-800 border-2 border-gray-300 rounded focus:outline-none focus:border-blue-500 placeholder-gray-400 ${
               !hasStartedDrawing ? 'opacity-50 cursor-not-allowed' : ''

@@ -28,6 +28,7 @@ export function StartPage({ onStartGame }: StartPageProps) {
     const newPlayer = {
       id: Math.random().toString(36).substr(2, 9),
       name: newPlayerName.trim(),
+      order: teams[0].players.length + teams[1].players.length,
     }
 
     setTeams((prevTeams) => {
@@ -106,7 +107,7 @@ export function StartPage({ onStartGame }: StartPageProps) {
             type="text"
             value={newPlayerName}
             onChange={(e) => setNewPlayerName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddPlayer()}
+            onKeyUp={(e) => e.key === 'Enter' && handleAddPlayer()}
             placeholder="Enter player name"
             className="flex-1 px-4 py-2 bg-white text-gray-800 border-2 border-gray-300 rounded focus:outline-none focus:border-blue-500"
           />
