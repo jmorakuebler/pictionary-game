@@ -61,17 +61,17 @@ Before you begin, ensure you have the following installed:
 
 2. Create a virtual environment:
    ```bash
-   python -m venv venv
+   python3.12 -m venv venv312
    ```
 
 3. Activate the virtual environment:
    - On Windows:
      ```bash
-     venv\Scripts\activate
+     venv312\Scripts\activate
      ```
    - On macOS/Linux:
      ```bash
-     source venv/bin/activate
+     source venv312/bin/activate
      ```
 
 4. Install dependencies:
