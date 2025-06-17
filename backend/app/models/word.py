@@ -1,73 +1,54 @@
 """
-Word model for the Pictionary Game.
-Handles loading and managing the word list from a JSON file.
+Word models for the Pictionary Game API.
+
+This module contains Pydantic models used for request/response validation
+and serialization in the word-related endpoints.
 """
 
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 import random
+from pydantic import BaseModel, Field
 
 from ..core.config import settings
 
 
-class Word:
+class Word(BaseModel):
     """A model representing a word in the Pictionary game."""
+    word: str = Field(..., description="A word in the Pictionary game")
+
+    class Config:
+        from_attributes = True
+
+
+class WordList(BaseModel):
+    """A model representing a list of words in the Pictionary game."""
+    words: List[Word] = Field(..., description="List of words in the Pictionary game")
+
+    class Config:
+        from_attributes = True
+
+
+class WordResponse(BaseModel):
+    """Response model for a single word."""
+    word: str = Field(..., description="A word in the Pictionary game")
     
-    _words: List[str] = []
-    _initialized: bool = False
+    class Config:
+        from_attributes = True
+
+
+class WordCountResponse(BaseModel):
+    """Response model for word count endpoint."""
+    word_count: int = Field(..., description="Total number of available words")
     
-    @classmethod
-    def _load_words(cls) -> None:
-        """Load words from the JSON file.
-        
-        Raises:
-            FileNotFoundError: If the words.json file is not found.
-            json.JSONDecodeError: If the file contains invalid JSON.
-        """
-        if cls._initialized:
-            return
-            
-        data_path = settings.DATA_DIR / "words.json"
-        with open(data_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            cls._words = data.get("words", [])
-        
-        cls._initialized = True
+    class Config:
+        from_attributes = True
+
+
+class WordListResponse(BaseModel):
+    """Response model for word list endpoint."""
+    words: List[str] = Field(..., description="List of all available words")
     
-    @classmethod
-    def get_random_word(cls) -> str:
-        """Get a random word from the loaded words.
-        
-        Returns:
-            str: A random word.
-            
-        Raises:
-            ValueError: If no words are available.
-        """
-        cls._load_words()  # Ensure words are loaded
-        
-        if not cls._words:
-            raise ValueError("No words available in the word list")
-            
-        return random.choice(cls._words)
-    
-    @classmethod
-    def get_all_words(cls) -> List[str]:
-        """Get all available words.
-        
-        Returns:
-            List[str]: A list of all available words.
-        """
-        cls._load_words()  # Ensure words are loaded
-        return cls._words.copy()
-    
-    @classmethod
-    def word_count(cls) -> int:
-        """Get the total number of available words.
-        
-        Returns:
-            int: The number of available words.
-        """
-        cls._load_words()  # Ensure words are loaded
-        return len(cls._words)
+    class Config:
+        from_attributes = True
