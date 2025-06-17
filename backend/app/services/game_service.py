@@ -55,18 +55,43 @@ class GameService:
         game_id: str,
         game_update: GameUpdate
     ) -> Optional[GameInDB]:
-        """Update a game in storage."""
-        # Convert Pydantic model to dict and remove None values
-        update_data = {
-            k: v for k, v in game_update.model_dump().items() 
-            if v is not None
-        }
-        return self.storage.update(game_id, update_data)
+        """Update a game in storage.
+        
+        Args:
+            game_id: ID of the game to update
+            game_update: Update data which can include direct score updates or team updates
             
-        game = self.games[game_id]
+        Returns:
+            Updated game or None if not found
+        """
+        # Get the existing game
+        game = self.get_game(game_id)
+        if not game:
+            return None
+            
+        # Convert game to dict
+        game_dict = game.model_dump()
         update_data = game_update.model_dump(exclude_unset=True)
         
-        return self.storage.update(game_id, update_data)
+        # Handle direct score updates (from frontend)
+        if 'red_team_score' in update_data:
+            game_dict['red_team']['score'] = update_data.pop('red_team_score')
+        if 'blue_team_score' in update_data:
+            game_dict['blue_team']['score'] = update_data.pop('blue_team_score')
+            
+        # Apply any remaining updates
+        for key, value in update_data.items():
+            # Handle nested updates (like team updates)
+            if key in game_dict and isinstance(game_dict[key], dict) and isinstance(value, dict):
+                game_dict[key].update(value)
+            else:
+                game_dict[key] = value
+        
+        # Create a new GameInDB instance with updated data
+        updated_game = GameInDB(**game_dict)
+        
+        # Save and return the updated game
+        return self.storage.update(game_id, updated_game.model_dump())
     
     def delete_game(self, game_id: str) -> bool:
         """Delete a game from storage."""
