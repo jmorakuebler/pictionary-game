@@ -1,30 +1,31 @@
-import json
-from pathlib import Path
-from typing import List
-import random
-from ..core.config import settings
+from typing import Optional
+from ..models.word import Word
 
 class WordService:
-    def __init__(self):
-        self.words: List[str] = []
-        self._load_words()
+    """Service class for word-related operations.
     
-    def _load_words(self) -> None:
-        """Load words from the JSON file."""
-        data_path = settings.DATA_DIR / "words.json"
-        try:
-            with open(data_path, "r") as f:
-                data = json.load(f)
-                self.words = data.get("words", [])
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            # Initialize with empty list if file doesn't exist or is invalid
-            self.words = []
+    This acts as a thin wrapper around the Word model to provide
+    a service layer for business logic if needed in the future.
+    """
     
     def get_random_word(self) -> str:
-        """Get a random word from the loaded words."""
-        if not self.words:
-            raise ValueError("No words available")
-        return random.choice(self.words)
+        """Get a random word from the available words.
+        
+        Returns:
+            str: A random word.
+            
+        Raises:
+            ValueError: If no words are available.
+        """
+        return Word.get_random_word()
+    
+    def get_word_count(self) -> int:
+        """Get the total number of available words.
+        
+        Returns:
+            int: The number of available words.
+        """
+        return Word.word_count()
 
 # Create a singleton instance
 word_service = WordService()
