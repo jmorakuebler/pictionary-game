@@ -36,22 +36,38 @@ Before you begin, ensure you have the following installed:
    # Should show 10.x.x or later
    ```
 
-## Project Structure
+## 🏗️ Project Structure
 
 ```
-.
-├── backend/           # FastAPI backend
+pictionary-game/
+├── backend/                 # FastAPI backend
 │   ├── app/
-│   │   ├── data/     # Game data (words)
-│   │   └── main.py   # FastAPI application
+│   │   ├── api/           # API endpoints (v1)
+│   │   │   ├── endpoints/   # Route handlers
+│   │   │   └── api_v1/      # API versioning
+│   │   ├── core/            # Core configurations
+│   │   ├── models/          # Pydantic models
+│   │   ├── services/        # Business logic
+│   │   │   ├── game_service.py  # Game management
+│   │   │   ├── word_service.py  # Word management
+│   │   │   └── file_storage.py  # Data persistence
+│   │   └── main.py         # FastAPI application
 │   └── requirements.txt
-└── frontend/         # React frontend
-    ├── public/
+│
+└── frontend/                # React frontend (TypeScript)
+    ├── public/             # Static files
     ├── src/
+    │   ├── components/     # React components
+    │   │   ├── GamePage.tsx    # Main game interface
+    │   │   ├── SettingsModal.tsx # Game settings
+    │   │   ├── GameHistory.tsx  # Past games
+    │   │   └── StartPage.tsx    # Game lobby
+    │   ├── models/         # TypeScript interfaces
+    │   └── utils/          # Utility functions
     └── package.json
 ```
 
-## Setup and Installation
+## 🚀 Setup and Installation
 
 ### Backend Setup
 1. Navigate to the backend directory:
@@ -59,36 +75,34 @@ Before you begin, ensure you have the following installed:
    cd backend
    ```
 
-2. Create a virtual environment:
+2. Create and activate a virtual environment (Python 3.12+ recommended):
    ```bash
-   python3.12 -m venv venv312
+   # Create virtual environment
+   python3.12 -m venv venv
+   
+   # Activate environment
+   # On Windows:
+   venv\Scripts\activate
+   # On macOS/Linux:
+   source venv/bin/activate
    ```
 
-3. Activate the virtual environment:
-   - On Windows:
-     ```bash
-     venv312\Scripts\activate
-     ```
-   - On macOS/Linux:
-     ```bash
-     source venv312/bin/activate
-     ```
-
-4. Install dependencies:
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-5. Start the backend server:
+4. Start the backend server:
    ```bash
    uvicorn app.main:app --reload
    ```
-   The API will be available at `http://localhost:8000`
+   - API Documentation: `http://localhost:8000/docs`
+   - API Base URL: `http://localhost:8000/api/v1`
 
 ### Frontend Setup
-1. Open a new terminal and navigate to the frontend directory:
+1. Navigate to the frontend directory:
    ```bash
-   cd frontend
+   cd ../frontend
    ```
 
 2. Install dependencies:
@@ -98,28 +112,36 @@ Before you begin, ensure you have the following installed:
 
 3. Start the development server:
    ```bash
-   npm start
+   npm run dev
    ```
-   The application will be available at `http://localhost:3000`
+   The frontend will be available at `http://localhost:5173`
 
-## How to Play
+## 🌐 API Endpoints
 
-1. Open `http://localhost:3000` in your browser
-2. Add players to teams (minimum 2 players per team)
-3. Configure game settings:
-   - Time per turn
-   - Points to win
-4. Start the game
-5. Players take turns drawing while their teammates guess
-6. First team to reach the target score wins!
+### Words
+- `GET /api/v1/words/random-word` - Get a random word
+- `GET /api/v1/words/word-count` - Get total word count
+- `GET /api/v1/words/` - List all available words
 
-## API Endpoints
+### Games
+- `POST /api/v1/games/` - Create a new game
+- `GET /api/v1/games/{game_id}` - Get game details
+- `PATCH /api/v1/games/{game_id}` - Update game state
+- `GET /api/v1/games/` - List all games with filters
+- `DELETE /api/v1/games/{game_id}` - Delete a game
 
-- `GET /`: API information
-- `GET /words`: Get a random word
+## 🎮 Game Flow
 
-## Development
+1. **Lobby**:
+   - Configure game settings (turn time, points to win)
+   - Add players to teams (Red vs Blue)
+   - Start the game when ready
 
+2. **Gameplay**:
+   - Players take turns drawing words
+   - Teammates guess the word being drawn
+   - Score points for correct guesses
+   - First team to reach the target score wins
 ### Backend Development
 - The backend uses FastAPI for high performance and automatic API documentation
 - Words are stored in `backend/app/data/words.json`
