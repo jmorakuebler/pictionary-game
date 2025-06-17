@@ -9,7 +9,7 @@ import { fetchWordCount, createGame } from '../utils/api'
 import type { GameCreate, GameConfig } from '../utils/api'
 
 interface StartPageProps {
-  onStartGame: (teams: Team[]) => void
+  onStartGame: (teams: Team[], settings: GameSettings) => void
 }
 
 export function StartPage({ onStartGame }: StartPageProps) {
@@ -26,7 +26,6 @@ export function StartPage({ onStartGame }: StartPageProps) {
     minPlayers: 4,
     pointsToWin: 10,
   })
-  const [tempSettings, setTempSettings] = useState<GameSettings>(settings)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -43,9 +42,6 @@ export function StartPage({ onStartGame }: StartPageProps) {
   }, [])
 
   const handleStartGame = async () => {
-    // Call the original onStartGame prop with updated settings
-    onStartGame(teams)
-    
     try {
       const config: GameConfig = {
         turnTime: settings.turnTime,
@@ -73,7 +69,7 @@ export function StartPage({ onStartGame }: StartPageProps) {
       sessionStorage.setItem('currentGameId', game.id)
       
       // Call the original onStartGame prop with the updated teams
-      onStartGame(teams)
+      onStartGame(teams, settings)
       navigate('/game')
     } catch (error) {
       console.error('Failed to start game:', error)
@@ -122,13 +118,7 @@ export function StartPage({ onStartGame }: StartPageProps) {
   }
 
   const handleOpenSettings = () => {
-    setTempSettings(settings)
     setShowSettings(true)
-  }
-
-  const handleSaveSettings = () => {
-    setSettings({...tempSettings})
-    setShowSettings(false)
   }
 
   const totalPlayers = teams.reduce((sum, team) => sum + team.players.length, 0)
@@ -205,13 +195,14 @@ export function StartPage({ onStartGame }: StartPageProps) {
 
       {showSettings && (
         <SettingsModal
-          settings={{...tempSettings}}
-          onSave={handleSaveSettings}
-          onCancel={() => {
-            setTempSettings(settings)
+          settings={{...settings}}
+          onSave={(newSettings) => {
+            setSettings(newSettings)
             setShowSettings(false)
           }}
-          onChange={(newSettings) => setTempSettings({...newSettings})}
+          onCancel={() => {
+            setShowSettings(false)
+          }}
         />
       )}
     </div>

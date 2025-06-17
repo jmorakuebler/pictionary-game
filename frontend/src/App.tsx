@@ -13,8 +13,9 @@ function App() {
     pointsToWin: 10,
   })
 
-  const handleStartGame = (initialTeams: Team[]) => {
+  const handleStartGame = (initialTeams: Team[], settings: GameSettings) => {
     setTeams(initialTeams)
+    setSettings(settings)
     setGameStarted(true)
   }
 
