@@ -68,14 +68,14 @@ export function GameHistory({ onGameSelect }: GameHistoryProps) {
                   <div className="text-sm text-gray-500">
                     {game.red_team.players.join(', ')}
                   </div>
-                  <div className="text-sm font-semibold">{game.red_team.score} pts</div>
+                  <div className="text-sm font-semibold text-gray-600">{game.red_team.score} pts</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-blue-600">{game.blue_team.name}</div>
                   <div className="text-sm text-gray-500">
                     {game.blue_team.players.join(', ')}
                   </div>
-                  <div className="text-sm font-semibold">{game.blue_team.score} pts</div>
+                  <div className="text-sm font-semibold text-gray-600">{game.blue_team.score} pts</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
