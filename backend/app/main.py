@@ -1,49 +1,46 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import random
-import json
 from pathlib import Path
-import os
-from dotenv import load_dotenv
+import uvicorn
 
-# Load environment variables from .env file
-load_dotenv()
+from .core.config import settings
+from .api.api_v1.api import api_router
 
-app = FastAPI(
-    title="Pictionary Game API",
-    description="API for the Pictionary Game",
-    version="1.0.0"
-)
+def create_application() -> FastAPI:
+    # Create FastAPI app
+    app = FastAPI(
+        title=settings.PROJECT_NAME,
+        version=settings.VERSION,
+        description="A multiplayer Pictionary game API",
+        openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    )
 
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")],  # Default to Vite's default port if not set
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # Configure CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ALLOWED_ORIGINS.split(","),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-def load_words():
-    data_path = Path(__file__).parent / "data" / "words.json"
-    with open(data_path, "r") as f:
-        data = json.load(f)
-    return data["words"]
+    # Include API router
+    app.include_router(api_router, prefix=settings.API_V1_STR)
 
-WORDS = load_words()
+    return app
 
+app = create_application()
+
+# Root endpoint
 @app.get("/")
 async def root():
     return {
-        "name": "Pictionary Game API",
-        "version": "1.0.0",
+        "name": settings.PROJECT_NAME,
+        "version": settings.VERSION,
         "description": "A multiplayer Pictionary game API",
-        "endpoints": {
-            "root": "/",
-            "get_word": "/api/word"
-        }
+        "documentation": "/docs",
+        "openapi_schema": "/openapi.json"
     }
 
-@app.get("/api/word")
-async def get_word():
-    return {"word": random.choice(WORDS)}
+if __name__ == "__main__":
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

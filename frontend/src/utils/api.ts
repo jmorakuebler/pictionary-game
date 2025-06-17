@@ -12,7 +12,7 @@ export interface ApiError extends Error {
 export const fetchWord = async (): Promise<string> => {
     console.log(`Getting new word from "${import.meta.env.VITE_API_BASE_URL}"`)
     try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/word`)
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/words/word`)
         if (!response.ok) {
             const error = new Error(`HTTP error! status: ${response.status}`) as ApiError
             error.status = response.status
