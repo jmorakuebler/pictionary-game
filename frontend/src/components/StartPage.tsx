@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { IoSettings } from 'react-icons/io5'
 import type { Team, GameSettings } from './types'
 import { TeamCard } from './TeamCard'
+import { GameHistory } from './GameHistory'
 import { SettingsModal } from './SettingsModal'
-import { fetchWordCount } from '../utils/api'
+import { fetchWordCount, createGame } from '../utils/api'
+import type { GameCreate, GameConfig } from '../utils/api'
 
 interface StartPageProps {
   onStartGame: (teams: Team[]) => void
@@ -15,6 +18,8 @@ export function StartPage({ onStartGame }: StartPageProps) {
     { id: 2, name: 'Red', color: 'text-red-600', score: 0, players: [] },
   ])
   const [newPlayerName, setNewPlayerName] = useState('')
+  const [wordCount, setWordCount] = useState(0)
+  // UI state
   const [showSettings, setShowSettings] = useState(false)
   const [settings, setSettings] = useState<GameSettings>({
     turnTime: 60,
@@ -22,7 +27,7 @@ export function StartPage({ onStartGame }: StartPageProps) {
     pointsToWin: 10,
   })
   const [tempSettings, setTempSettings] = useState<GameSettings>(settings)
-  const [wordCount, setWordCount] = useState<number>(0)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const loadWordCount = async () => {
@@ -36,6 +41,46 @@ export function StartPage({ onStartGame }: StartPageProps) {
     
     loadWordCount()
   }, [])
+
+  const handleStartGame = async () => {
+    // Call the original onStartGame prop with updated settings
+    onStartGame(teams)
+    
+    try {
+      const config: GameConfig = {
+        turnTime: settings.turnTime,
+        minPlayers: settings.minPlayers,
+        pointsToWin: settings.pointsToWin
+      }
+      
+      const gameData: GameCreate = {
+        red_team: {
+          name: 'Red Team',
+          players: teams[1].players.map(p => p.name),
+          score: 0
+        },
+        blue_team: {
+          name: 'Blue Team',
+          players: teams[0].players.map(p => p.name),
+          score: 0
+        },
+        config
+      }
+      
+      const game = await createGame(gameData)
+      
+      // Store game ID in session storage
+      sessionStorage.setItem('currentGameId', game.id)
+      
+      // Call the original onStartGame prop with the updated teams
+      onStartGame(teams)
+      navigate('/game')
+    } catch (error) {
+      console.error('Failed to start game:', error)
+      // Fallback to local game if API fails
+      navigate('/game')
+    }
+  }
 
   const handleAddPlayer = () => {
     if (!newPlayerName.trim()) return
@@ -82,12 +127,7 @@ export function StartPage({ onStartGame }: StartPageProps) {
   }
 
   const handleSaveSettings = () => {
-    setSettings(tempSettings)
-    setShowSettings(false)
-  }
-
-  const handleCancelSettings = () => {
-    setTempSettings(settings)
+    setSettings({...tempSettings})
     setShowSettings(false)
   }
 
@@ -95,7 +135,7 @@ export function StartPage({ onStartGame }: StartPageProps) {
   const canStartGame = totalPlayers >= settings.minPlayers
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-5xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="mb-6">
           <div className="flex justify-between items-center">
@@ -147,7 +187,7 @@ export function StartPage({ onStartGame }: StartPageProps) {
         )}
 
         <button
-          onClick={() => onStartGame(teams)}
+          onClick={handleStartGame}
           disabled={!canStartGame}
           className={`w-full px-6 py-3 rounded-lg text-white transition-colors ${
             canStartGame
@@ -157,17 +197,23 @@ export function StartPage({ onStartGame }: StartPageProps) {
         >
           Start Game
         </button>
+        <GameHistory onGameSelect={(gameId) => {
+          // Handle game selection if needed
+          console.log('Selected game:', gameId);
+        }} />
       </div>
 
       {showSettings && (
         <SettingsModal
-          settings={settings}
-          tempSettings={tempSettings}
+          settings={{...tempSettings}}
           onSave={handleSaveSettings}
-          onCancel={handleCancelSettings}
-          onSettingsChange={setTempSettings}
+          onCancel={() => {
+            setTempSettings(settings)
+            setShowSettings(false)
+          }}
+          onChange={(newSettings) => setTempSettings({...newSettings})}
         />
       )}
     </div>
   )
-} 
+}

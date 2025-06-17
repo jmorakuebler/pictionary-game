@@ -1,10 +1,11 @@
-import { useState, useEffect, type JSX } from 'react'
+import { useState, useEffect, useCallback, type JSX } from 'react'
 import { FaEraser } from 'react-icons/fa'
 import { toast } from 'react-hot-toast'
 import type { Team, GameSettings } from './types'
 import { VictoryModal } from './VictoryModal'
-import { fetchWord } from '../utils/api'
+import { fetchWord, updateGame, getGame } from '../utils/api'
 import { useCanvas } from '../hooks/useCanvas'
+import { useNavigate } from 'react-router-dom'
 
 interface GamePageProps {
   teams: Team[]
@@ -14,6 +15,8 @@ interface GamePageProps {
 
 
 export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageProps): JSX.Element {
+  const navigate = useNavigate()
+  const [gameId, setGameId] = useState<string | null>(null)
   const [teams, setTeams] = useState<Team[]>(initialTeams)
   const [currentPlayerOrder, setCurrentPlayerOrder] = useState(0)
   const [word, setWord] = useState('')
@@ -35,8 +38,22 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
     setBrushSize 
   } = useCanvas()
 
+  // Initialize game and load word
   useEffect(() => {
-    getNewWord()
+    const loadInitialData = async () => {
+      const id = sessionStorage.getItem('currentGameId')
+      if (id) {
+        setGameId(id)
+        try {
+          await getNewWord()
+        } catch (error) {
+          console.error('Failed to load word:', error)
+          toast.error('Failed to load word. Please try again.')
+        }
+      }
+    }
+    
+    loadInitialData()
   }, [])
 
   useEffect(() => {
@@ -73,13 +90,41 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
   }, [currentPlayerOrder])
 
   const getNewWord = async () => {
-    const newWord = await fetchWord()
-    setWord(newWord)
+    try {
+      const newWord = await fetchWord()
+      setWord(newWord)
+      return newWord
+    } catch (error) {
+      console.error('Error fetching word:', error)
+      throw error
+    }
   }
 
   const handleNewWordClick = async () => {
     await getNewWord()
     setHasChangedWord(true)
+  }
+
+  const handleEndGame = async () => {
+    if (window.confirm('Are you sure you want to end the current game?')) {
+      try {
+        // Use updateGameState to ensure consistent state updates
+        await updateGameState({
+          is_aborted: true,
+          end_time: new Date().toISOString()
+        })
+        
+        // Clear the current game from session storage
+        sessionStorage.removeItem('currentGameId')
+        
+        // Navigate to home and clean up
+        onGameEnd()
+        navigate('/')
+      } catch (error) {
+        console.error('Failed to end game:', error)
+        toast.error('Failed to properly end the game')
+      }
+    }
   }
 
   const handleGuess = () => {
@@ -110,29 +155,92 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
     })
   }
 
-  const handleCorrectGuess = () => {
-    // Even number means team 0, odd number means team 1
-    const updatedTeams = teams.map((team) => {
-      if (team.players.find((player => player.order === currentPlayerOrder))) {
-        return { ...team, score: team.score + 1 }
+  const updateGameState = useCallback(async (updates: {
+    red_team_score?: number
+    blue_team_score?: number
+    is_completed?: boolean
+    is_aborted?: boolean
+    end_time?: string
+  }) => {
+    const currentGameId = gameId || sessionStorage.getItem('currentGameId')
+    console.log(`Updating game ID ${currentGameId} with state:`, updates)
+    
+    if (!currentGameId) {
+      console.error('No game ID found for update')
+      return
+    }
+    
+    try {
+      await updateGame(currentGameId, {
+        ...updates,
+        ...(updates.is_completed ? { end_time: new Date().toISOString() } : {})
+      })
+    } catch (error) {
+      console.error('Failed to update game:', error)
+      toast.error('Failed to save game progress')
+    }
+  }, [gameId])
+
+  // Load saved game state on mount
+  useEffect(() => {
+    const loadGameState = async () => {
+      if (!gameId) return
+      
+      try {
+        const savedGame = await getGame(gameId)
+        if (savedGame) {
+          // Update teams with saved scores
+          setTeams(prevTeams => {
+            return prevTeams.map((team, index) => ({
+              ...team,
+              score: index === 0 ? savedGame.blue_team.score : savedGame.red_team.score
+            }))
+          })
+          
+          // If game was completed, show victory modal
+          if (savedGame.is_completed) {
+            const winningTeamIndex = savedGame.blue_team.score >= savedGame.red_team.score ? 0 : 1
+            setWinningTeam(initialTeams[winningTeamIndex])
+            setShowVictoryModal(true)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load game state:', error)
+        toast.error('Failed to load saved game')
       }
-      return team
-    })
+    }
+    
+    loadGameState()
+  }, [gameId])
+
+  const handleCorrectGuess = async () => {
+    // Update scores and handle turn logic
+    const updatedTeams = [...teams]
+    const currentTeamIndex = currentPlayerOrder % 2
+    const currentTeam = updatedTeams[currentTeamIndex]
+    
+    // Update local state
+    currentTeam.score += 1
     setTeams(updatedTeams)
 
-    // Check for victory
-    const victoryTeam = updatedTeams.find((team) => team.score >= settings.pointsToWin)
+    // Update backend
+    await updateGameState({
+      [currentTeamIndex === 0 ? 'blue_team_score' : 'red_team_score']: currentTeam.score
+    })
 
-    if (victoryTeam) {
-      setWinningTeam(victoryTeam)
+    // Check for winner
+    if (currentTeam.score >= settings.pointsToWin) {
+      setWinningTeam(currentTeam)
       setShowVictoryModal(true)
-    } else {
-      handleTurnChange()
+      await updateGameState({
+        is_completed: true
+      })
+      return
     }
-  }
 
-  // Remove duplicate declarations - these functions are already defined in the useCanvas hook
-  // and we're using them from the destructured values above
+    // Call next turn handler
+    handleTurnChange()
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -142,7 +250,7 @@ export function GamePage({ teams: initialTeams, settings, onGameEnd }: GamePageP
         </h1>
         <div className="flex gap-4">
           <button
-            onClick={onGameEnd}
+            onClick={handleEndGame}
             className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
           >
             End Game
