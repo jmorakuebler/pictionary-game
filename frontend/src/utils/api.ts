@@ -27,3 +27,22 @@ export const fetchWord = async (): Promise<string> => {
         return 'default'
     }
 }
+
+export const fetchWordCount = async (): Promise<number> => {
+    console.log(`Getting word count from "${import.meta.env.VITE_API_BASE_URL}"`)
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/words/word_count`)
+        if (!response.ok) {
+            const error = new Error(`HTTP error! status: ${response.status}`) as ApiError
+            error.status = response.status
+            throw error
+        }
+        const data = await response.json()
+        return data.word_count
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error('Error fetching word count:', errorMessage)
+        toast.error('Failed to fetch word count. Using default word count.')
+        return 0
+    }
+}

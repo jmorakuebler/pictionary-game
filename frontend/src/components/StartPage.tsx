@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { IoSettings } from 'react-icons/io5'
 import type { Team, GameSettings } from './types'
 import { TeamCard } from './TeamCard'
 import { SettingsModal } from './SettingsModal'
+import { fetchWordCount } from '../utils/api'
 
 interface StartPageProps {
   onStartGame: (teams: Team[]) => void
@@ -21,6 +22,20 @@ export function StartPage({ onStartGame }: StartPageProps) {
     pointsToWin: 10,
   })
   const [tempSettings, setTempSettings] = useState<GameSettings>(settings)
+  const [wordCount, setWordCount] = useState<number>(0)
+
+  useEffect(() => {
+    const loadWordCount = async () => {
+      try {
+        const count = await fetchWordCount()
+        setWordCount(count)
+      } catch (error) {
+        console.error('Error loading word count:', error)
+      }
+    }
+    
+    loadWordCount()
+  }, [])
 
   const handleAddPlayer = () => {
     if (!newPlayerName.trim()) return
@@ -82,14 +97,20 @@ export function StartPage({ onStartGame }: StartPageProps) {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Pictionary Game</h1>
-          <button
-            onClick={handleOpenSettings}
-            className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            <IoSettings className="text-2xl" />
-          </button>
+        <div className="mb-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-gray-800">Pictionary Game</h1>
+            <button
+              onClick={handleOpenSettings}
+              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+              aria-label="Settings"
+            >
+              <IoSettings className="w-6 h-6" />
+            </button>
+          </div>
+          {wordCount > 0 && (
+            <p className="text-gray-500 mt-1">Word pool: {wordCount}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

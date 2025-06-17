@@ -14,3 +14,10 @@ async def get_random_word() -> Dict[str, str]:
         return {"word": word}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/word_count", response_model=Dict[str, int])
+async def get_word_count() -> Dict[str, int]:
+    """
+    Get the total number of available words.
+    """
+    return {"word_count": word_service.get_word_count()}
